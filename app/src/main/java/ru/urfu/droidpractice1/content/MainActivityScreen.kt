@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import ru.urfu.droidpractice1.R
 import ru.urfu.droidpractice1.ui.theme.AppTypography
@@ -36,22 +35,26 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import ru.urfu.droidpractice1.SecondActivity
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.colorResource
 import androidx.core.content.ContextCompat.getString
 
 
+enum class VoteState {
+    NONE, LIKED, DISLIKED
+}
+
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun MainActivityScreen(switchEnabled: Boolean) {
+fun MainActivityScreen(switchEnabled: Boolean, onLinkClick: () -> Unit) {
     DroidPractice1Theme {
         Scaffold(modifier = Modifier.fillMaxSize(),
             topBar = {
@@ -68,35 +71,34 @@ fun MainActivityScreen(switchEnabled: Boolean) {
                     Row(verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp, top = 5.dp),
                         horizontalArrangement = Arrangement.Center) {
-                        var liked by remember { mutableStateOf(false) }
-                        var disliked by remember { mutableStateOf(false) }
-                        var likeCounter by remember { mutableIntStateOf(0) }
+                        var voteState by rememberSaveable { mutableStateOf(VoteState.NONE) }
+                        val likeCounter by remember(voteState) {
+                            derivedStateOf {
+                                when (voteState) {
+                                    VoteState.LIKED -> 1
+                                    VoteState.DISLIKED -> -1
+                                    VoteState.NONE -> 0
+                                }
+                            }
+                        }
 
                         IconButton(onClick = {
-                            if (!liked) {
-                                liked = true
-                                disliked = false
-                            }
-                            likeCounter += 1
+                            voteState = if (voteState == VoteState.LIKED) VoteState.NONE else VoteState.LIKED
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_like),
                                 contentDescription = "Лайк",
-                                tint = if (liked) Color(0xFFE53935) else Color.Gray
+                                tint = if (voteState == VoteState.LIKED) colorResource(R.color.red) else colorResource(R.color.gray)
                             )
                         }
 
                         IconButton(onClick = {
-                            if (!disliked) {
-                                liked = false
-                                disliked = true
-                            }
-                            likeCounter -= 1
-                        }, modifier = Modifier.padding(end = 10.dp)) {
+                            voteState = if (voteState == VoteState.DISLIKED) VoteState.NONE else VoteState.DISLIKED
+                        }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_dislike),
                                 contentDescription = "Дизлайк",
-                                tint = if (disliked) Color(0xFFE53935) else Color.Gray
+                                tint = if (voteState == VoteState.DISLIKED) colorResource(R.color.red) else colorResource(R.color.gray)
                             )
                         }
 
@@ -125,8 +127,8 @@ fun MainActivityScreen(switchEnabled: Boolean) {
                                 context.startActivity(Intent.createChooser(sendIntent, null))
                             },
                             colors = buttonColors(
-                                containerColor = Color(0xFF6200EE),
-                                contentColor = Color.White
+                                containerColor = colorResource(R.color.violet),
+                                contentColor = colorResource(R.color.white)
                             )
                         ) {
                             Text(text = stringResource(R.string.share))
@@ -144,8 +146,7 @@ fun MainActivityScreen(switchEnabled: Boolean) {
                     Text(text = stringResource(id = R.string.vtubers_general_2), style = AppTypography.bodyLarge, modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp), fontFamily = CalibriFamily)
                     Text(text = stringResource(id = R.string.vtubers_general_3), style = AppTypography.bodyLarge, modifier = Modifier.padding(horizontal = 15.dp))
 
-                    val context = LocalContext.current
-                    val backgroundColor = if (switchEnabled) Color(0xFFB2F2BB) else Color(0xFFFFE0E0)
+                    val backgroundColor = if (switchEnabled) colorResource(R.color.mint) else colorResource(R.color.light_pink)
                     Text(
                         text = stringResource(id = R.string.link),
                         style = AppTypography.labelSmall,
@@ -153,7 +154,7 @@ fun MainActivityScreen(switchEnabled: Boolean) {
                             .padding(15.dp)
                             .background(backgroundColor, shape = RoundedCornerShape(8.dp))
                             .clickable {
-                                context.startActivity(Intent(context, SecondActivity::class.java))
+                                onLinkClick()
                             }
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
@@ -161,12 +162,4 @@ fun MainActivityScreen(switchEnabled: Boolean) {
             }
         }
     }
-}
-
-
-
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    MainActivityScreen(false)
 }

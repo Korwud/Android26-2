@@ -12,7 +12,11 @@ private const val TAG = "SecondActivity"
 class SecondActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySecondBinding
-    private val prefs by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("switch_enabled", binding.switchRead.isChecked)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,10 +47,13 @@ class SecondActivity : AppCompatActivity() {
             .load("https://hololive.hololivepro.com/wp-content/uploads/2023/09/Hyakuto-Kyoko_pr-img_01.webp")
             .into(binding.HyakutoKyokoImage)
 
-        binding.switchRead.isChecked = prefs.getBoolean("switch_enabled", false)
+        binding.switchRead.isChecked = savedInstanceState?.getBoolean("switch_enabled", false) ?: false
 
         binding.switchRead.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("switch_enabled", isChecked).apply()
+            val resultIntent = Intent().apply {
+                putExtra("switch_result", isChecked)
+            }
+            setResult(RESULT_OK, resultIntent)
         }
 
         val shareText = buildString {
